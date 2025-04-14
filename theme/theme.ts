@@ -1,21 +1,27 @@
 export const colors = {
-  primary: '#6366F1', // Modern indigo
-  secondary: '#EC4899', // Modern pink
-  background: '#F9FAFB', // Light gray background
+  primary: '#7C3AED', // Vibrant purple
+  secondary: '#EC4899', // Pink
+  background: '#F8FAFC', // Light gray background
   surface: '#FFFFFF',
+  surfaceVariant: '#F1F5F9', // Subtle gray for cards
   text: {
-    primary: '#111827', // Near black
-    secondary: '#6B7280', // Gray
+    primary: '#1E293B', // Slate 800
+    secondary: '#64748B', // Slate 500
     inverse: '#FFFFFF',
+    accent: '#7C3AED', // Same as primary
   },
-  border: '#E5E7EB',
+  border: '#E2E8F0',
   success: '#10B981', // Emerald
   error: '#EF4444', // Red
   warning: '#F59E0B', // Amber
   info: '#3B82F6', // Blue
   gradient: {
-    primary: ['#6366F1', '#8B5CF6'], // Indigo to purple
-    secondary: ['#EC4899', '#F43F5E'], // Pink to rose
+    primary: ['#7C3AED', '#9333EA'], // Purple gradient
+    secondary: ['#EC4899', '#DB2777'], // Pink gradient
+  },
+  states: {
+    pressed: 'rgba(0, 0, 0, 0.05)',
+    hovered: 'rgba(0, 0, 0, 0.02)',
   },
 };
 
@@ -52,6 +58,10 @@ export const typography = {
     semibold: '600',
     bold: '700',
   },
+  families: {
+    base: undefined, // System default
+    heading: undefined, // System default
+  }
 };
 
 export const shadows = {
@@ -81,4 +91,11 @@ export const shadows = {
 export const layout = {
   containerPadding: spacing.md,
   maxContentWidth: 1200,
+};
+
+export const iconSizes = {
+  sm: 16,
+  md: 24,
+  lg: 32,
+  xl: 48,
 }; 

@@ -1,6 +1,15 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
-import { colors, typography, spacing } from '../theme/theme';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  ViewStyle,
+  TextStyle,
+  View,
+} from 'react-native';
+import { colors, typography, spacing, iconSizes } from '../theme/theme';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 type ButtonSize = 'small' | 'medium' | 'large';
@@ -15,6 +24,9 @@ interface ButtonProps {
   fullWidth?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  icon?: string;
+  iconPosition?: 'left' | 'right';
+  iconColor?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -27,6 +39,9 @@ const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   style,
   textStyle,
+  icon,
+  iconPosition = 'left',
+  iconColor,
 }) => {
   const getContainerStyle = () => {
     const baseStyle: ViewStyle = {
@@ -43,22 +58,60 @@ const Button: React.FC<ButtonProps> = ({
     ];
   };
 
+  const getIconSize = () => {
+    switch (size) {
+      case 'small':
+        return iconSizes.sm;
+      case 'large':
+        return iconSizes.md;
+      default:
+        return iconSizes.sm;
+    }
+  };
+
+  const getIconColor = () => {
+    if (iconColor) return iconColor;
+    return variant === 'primary' ? colors.text.inverse : colors.primary;
+  };
+
+  const renderIcon = () => {
+    if (!icon) return null;
+    return (
+      <Icon
+        name={icon}
+        size={getIconSize()}
+        color={getIconColor()}
+        style={[
+          iconPosition === 'left' ? styles.iconLeft : styles.iconRight,
+          styles.icon
+        ]}
+      />
+    );
+  };
+
   const content = (
     <>
       {loading ? (
-        <ActivityIndicator 
-          color={variant === 'primary' ? colors.text.inverse : colors.primary} 
+        <ActivityIndicator
+          color={variant === 'primary' ? colors.text.inverse : colors.primary}
           size={size === 'small' ? 'small' : 'small'}
         />
       ) : (
-        <Text style={[
-          styles.text,
-          styles[`text${size}`],
-          styles[`text${variant}`],
-          textStyle,
-        ]}>
-          {title}
-        </Text>
+        <View style={styles.contentContainer}>
+          {iconPosition === 'left' && renderIcon()}
+          <Text
+            style={[
+              styles.text,
+              styles[`text${size}`],
+              styles[`text${variant}`],
+              icon ? styles.textWithIcon : null,
+              textStyle,
+            ]}
+          >
+            {title}
+          </Text>
+          {iconPosition === 'right' && renderIcon()}
+        </View>
       )}
     </>
   );
@@ -115,9 +168,26 @@ const styles = StyleSheet.create({
   containerghost: {
     backgroundColor: 'transparent',
   },
+  contentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   text: {
     fontWeight: '600',
     textAlign: 'center',
+  },
+  textWithIcon: {
+    marginHorizontal: spacing.xs,
+  },
+  icon: {
+    opacity: 0.9,
+  },
+  iconLeft: {
+    marginRight: spacing.xs,
+  },
+  iconRight: {
+    marginLeft: spacing.xs,
   },
   textsmall: {
     fontSize: typography.sizes.sm,

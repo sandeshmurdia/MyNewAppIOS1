@@ -2,6 +2,18 @@ import React, { useRef, useEffect, useContext } from 'react';
 import { View, Text, Switch, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ThemeContext } from '../App';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { colors, typography, spacing, shadows } from '../theme/theme';
+
+interface SettingOption {
+  title: string;
+  icon: string;
+  iconColor: string;
+  type: 'switch' | 'button';
+  action?: () => void;
+  value?: boolean;
+  onValueChange?: (value: boolean) => void;
+}
 
 const SettingsScreen: React.FC<{ handleLogout: () => void }> = ({ handleLogout }) => {
   const { toggleTheme, isDarkTheme } = useContext(ThemeContext);
@@ -12,7 +24,7 @@ const SettingsScreen: React.FC<{ handleLogout: () => void }> = ({ handleLogout }
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 1000,
+      duration: 500,
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
@@ -22,29 +34,79 @@ const SettingsScreen: React.FC<{ handleLogout: () => void }> = ({ handleLogout }
     setIsEnabled(!isEnabled);
   };
 
-  return (
-    <Animated.View style={[styles.container, { backgroundColor: isDarkTheme ? '#121212' : '#ffffff' }]}>
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <Text style={[styles.header, { color: isDarkTheme ? '#ffffff' : '#121212' }]}>Settings</Text>
-        
-        <View style={[styles.settingOption, { backgroundColor: isDarkTheme ? '#1f1f1f' : '#f5f5f5' }]}>
-          <Text style={[styles.optionText, { color: isDarkTheme ? '#ffffff' : '#121212' }]}>Change Theme</Text>
-          <Switch
-            trackColor={{ false: "#767577", true: "#81b0ff" }}
-            thumbColor={isEnabled ? "#f5dd4b" : "#f4f3f4"}
-            onValueChange={toggleSwitch}
-            value={isEnabled}
-          />
+  const settingOptions: SettingOption[] = [
+    {
+      title: 'Dark Mode',
+      icon: 'theme-light-dark',
+      iconColor: '#6366F1',
+      type: 'switch',
+      value: isEnabled,
+      onValueChange: toggleSwitch,
+    },
+    {
+      title: 'Notifications',
+      icon: 'bell-outline',
+      iconColor: '#F59E0B',
+      type: 'switch',
+      value: true,
+      onValueChange: () => {},
+    },
+    {
+      title: 'Privacy',
+      icon: 'shield-check-outline',
+      iconColor: '#10B981',
+      type: 'button',
+      action: () => navigation.navigate('Privacy' as never),
+    },
+    {
+      title: 'Help & Support',
+      icon: 'help-circle-outline',
+      iconColor: '#3B82F6',
+      type: 'button',
+      action: () => navigation.navigate('Support' as never),
+    },
+  ];
+
+  const renderSettingOption = (option: SettingOption) => (
+    <TouchableOpacity
+      key={option.title}
+      style={styles.settingOption}
+      onPress={option.type === 'button' ? option.action : undefined}
+    >
+      <View style={styles.settingLeft}>
+        <View style={[styles.iconContainer, { backgroundColor: `${option.iconColor}15` }]}>
+          <Icon name={option.icon} size={24} color={option.iconColor} />
         </View>
+        <Text style={styles.optionText}>{option.title}</Text>
+      </View>
+      {option.type === 'switch' ? (
+        <Switch
+          trackColor={{ false: colors.border, true: `${option.iconColor}50` }}
+          thumbColor={option.value ? option.iconColor : '#f4f3f4'}
+          onValueChange={option.onValueChange}
+          value={option.value}
+        />
+      ) : (
+        <Icon name="chevron-right" size={24} color={colors.text.secondary} style={styles.chevron} />
+      )}
+    </TouchableOpacity>
+  );
 
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#FF6F61' }]} onPress={handleLogout}>
-          <Text style={styles.buttonText}>Logout</Text>
-        </TouchableOpacity>
+  return (
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerSubtitle}>Customize your app preferences</Text>
+      </View>
 
-        <TouchableOpacity style={[styles.button, styles.goBackButton]} onPress={() => navigation.goBack()}>
-          <Text style={styles.buttonText}>Go Back</Text>
-        </TouchableOpacity>
-      </Animated.View>
+      <View style={styles.settingsContainer}>
+        {settingOptions.map(renderSettingOption)}
+      </View>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Icon name="logout" size={24} color={colors.error} />
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
     </Animated.View>
   );
 };
@@ -52,45 +114,72 @@ const SettingsScreen: React.FC<{ handleLogout: () => void }> = ({ handleLogout }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
+    backgroundColor: colors.background,
   },
   header: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    textAlign: 'center',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  headerTitle: {
+    fontSize: typography.sizes.xxl,
+    fontWeight: typography.weights.bold,
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  headerSubtitle: {
+    fontSize: typography.sizes.md,
+    color: colors.text.secondary,
+  },
+  settingsContainer: {
+    padding: spacing.lg,
   },
   settingOption: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
-    padding: 15,
-    borderRadius: 10,
-    elevation: 3,
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    marginBottom: spacing.md,
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
   },
   optionText: {
-    fontSize: 18,
+    fontSize: typography.sizes.md,
+    color: colors.text.primary,
+    fontWeight: typography.weights.medium,
   },
-  button: {
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    justifyContent: 'center',
+  chevron: {
+    opacity: 0.5,
+  },
+  logoutButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
+    justifyContent: 'center',
+    padding: spacing.lg,
+    marginTop: 'auto',
+    marginBottom: spacing.lg,
+    marginHorizontal: spacing.lg,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.sm,
   },
-  goBackButton: {
-    backgroundColor: '#4CAF50',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  logoutText: {
+    marginLeft: spacing.md,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+    color: colors.error,
   },
 });
 

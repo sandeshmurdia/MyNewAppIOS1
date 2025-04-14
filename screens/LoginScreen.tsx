@@ -9,7 +9,7 @@ const LoginScreen: React.FC<{
   handleLogin: (email: string, password: string, lastname: string, username: string, customerName: string) => void 
 }> = ({ handleLogin }) => {
   const { apiKey, setApiKey } = useContext(ApiKeyContext);
-  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(!!apiKey); // Show login form if API key exists
   const [email, setEmail] = useState('');
   const [firstname, setFirstname] = useState('');
   const [lastname, setLastname] = useState('');
@@ -34,6 +34,13 @@ const LoginScreen: React.FC<{
       useNativeDriver: true,
     }).start();
   }, [fadeAnim, translateAnim]);
+
+  // Update showLoginForm when apiKey changes
+  useEffect(() => {
+    if (apiKey) {
+      setShowLoginForm(true);
+    }
+  }, [apiKey]);
 
   const handleApiKeySubmit = () => {
     if (apiKey.trim()) {
@@ -71,13 +78,11 @@ const LoginScreen: React.FC<{
                 value={apiKey}
                 onChangeText={setApiKey}
                 placeholder="Enter your API key"
-                secureTextEntry
               />
               <Button
                 title="Continue"
                 onPress={handleApiKeySubmit}
                 variant="primary"
-                gradient
                 fullWidth
               />
             </>

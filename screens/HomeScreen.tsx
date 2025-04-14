@@ -1,13 +1,17 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { colors, typography, spacing, shadows } from '../theme/theme';
+import { colors, typography, spacing, shadows, iconSizes } from '../theme/theme';
 import Button from '../components/Button';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 interface MenuItem {
   title: string;
   screen: string;
   description: string;
+  icon: string;
+  iconColor?: string;
+  bgColor?: string;
 }
 
 const menuItems: MenuItem[] = [
@@ -15,31 +19,49 @@ const menuItems: MenuItem[] = [
     title: 'Profile',
     screen: 'Profile',
     description: 'View and edit your profile information',
+    icon: 'account-circle-outline',
+    iconColor: '#7C3AED', // Purple
+    bgColor: '#F3E8FF',
   },
   {
     title: 'API Testing',
     screen: 'Api',
     description: 'Test and monitor API endpoints',
+    icon: 'api',
+    iconColor: '#2563EB', // Blue
+    bgColor: '#EFF6FF',
   },
   {
     title: 'Logs',
     screen: 'Logs',
     description: 'View system logs and debugging information',
+    icon: 'text-box-search-outline',
+    iconColor: '#059669', // Green
+    bgColor: '#ECFDF5',
   },
   {
     title: 'Error Handling',
     screen: 'Errors',
     description: 'Test error handling and crash reporting',
+    icon: 'shield-alert-outline',
+    iconColor: '#DC2626', // Red
+    bgColor: '#FEF2F2',
   },
   {
     title: 'Settings',
     screen: 'Settings',
     description: 'Configure app settings and preferences',
+    icon: 'cog-outline',
+    iconColor: '#6B7280', // Gray
+    bgColor: '#F3F4F6',
   },
   {
     title: 'About',
     screen: 'About',
     description: 'Learn more about the app',
+    icon: 'information-outline',
+    iconColor: '#0891B2', // Cyan
+    bgColor: '#ECFEFF',
   },
 ];
 
@@ -51,17 +73,23 @@ const HomeScreen: React.FC = () => {
       key={item.screen}
       style={styles.menuItem}
       onPress={() => navigation.navigate(item.screen as never)}
+      activeOpacity={0.7}
     >
+      <View style={[styles.menuIconContainer, { backgroundColor: item.bgColor }]}>
+        <Icon name={item.icon} size={iconSizes.lg} color={item.iconColor} />
+      </View>
       <View style={styles.menuContent}>
         <Text style={styles.menuTitle}>{item.title}</Text>
         <Text style={styles.menuDescription}>{item.description}</Text>
       </View>
-      <Button
-        title="Open"
-        variant="ghost"
-        size="small"
-        onPress={() => navigation.navigate(item.screen as never)}
-      />
+      <View style={styles.chevronContainer}>
+        <Icon 
+          name="chevron-right" 
+          size={iconSizes.md} 
+          color={colors.text.secondary}
+          style={styles.chevronIcon}
+        />
+      </View>
     </TouchableOpacity>
   );
 
@@ -102,7 +130,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: typography.sizes.xxl,
-    fontWeight: '700',
+    fontWeight: typography.weights.bold,
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
@@ -115,12 +143,21 @@ const styles = StyleSheet.create({
   },
   menuItem: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  menuIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
   },
   menuContent: {
     flex: 1,
@@ -128,13 +165,23 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: typography.sizes.lg,
-    fontWeight: '600',
+    fontWeight: typography.weights.semibold,
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
   menuDescription: {
     fontSize: typography.sizes.sm,
     color: colors.text.secondary,
+    lineHeight: 20,
+  },
+  chevronContainer: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chevronIcon: {
+    opacity: 0.5,
   },
 });
 

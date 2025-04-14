@@ -66,6 +66,7 @@ const App: React.FC = () => {
   };
 
   const initSession = () => {
+    console.log('initSession', apiKey);
     zipy.init(apiKey);
   };
 
