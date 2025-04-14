@@ -1,7 +1,7 @@
 import React, { useEffect, useState, createContext } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, TouchableOpacity, Button } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import HomeScreen from './screens/HomeScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
@@ -10,12 +10,8 @@ import ApiScreen from './screens/ApiScreen';
 import LogScreen from './screens/LogScreen';
 import ErrorHandlingScreen from './screens/ErrorHandlingScreen';
 import LoginScreen from './screens/LoginScreen';
-import styles from './styles';
-import zipy, {ScreenNavigation} from 'zipy-react-native';
-// import zipy, {ScreenNavigation} from 'zipyai-react-native';
-
-import { NativeModules } from "react-native";
-
+import zipy, { ScreenNavigation } from 'zipy-react-native';
+import withSessionControls from './components/withSessionControls';
 
 type RootStackParamList = {
   Login: undefined;
@@ -26,6 +22,7 @@ type RootStackParamList = {
   Api: undefined;
   Logs: undefined;
   Errors: undefined;
+  CrashANR: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -35,32 +32,67 @@ export const ThemeContext = createContext({
   isDarkTheme: false,
 });
 
+export const ApiKeyContext = createContext({
+  apiKey: '',
+  setApiKey: (key: string) => {},
+});
+
+export const SessionContext = createContext({
+  isSessionInitialized: true,
+  initSession: () => {},
+  startSession: () => {},
+  stopSession: () => {},
+  resumeSession: () => {},
+});
+
+// Wrap all screens with session controls
+const WrappedHomeScreen = withSessionControls(HomeScreen);
+const WrappedProfileScreen = withSessionControls(ProfileScreen);
+const WrappedSettingsScreen = withSessionControls(SettingsScreen);
+const WrappedAboutScreen = withSessionControls(AboutScreen);
+const WrappedApiScreen = withSessionControls(ApiScreen);
+const WrappedLogScreen = withSessionControls(LogScreen);
+const WrappedErrorHandlingScreen = withSessionControls(ErrorHandlingScreen);
+const WrappedLoginScreen = withSessionControls(LoginScreen);
+
 const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    // simulate fetching session URL
-  }, []);
+  const [apiKey, setApiKey] = useState('');
+  const [isSessionInitialized, setIsSessionInitialized] = useState(true);
 
   const toggleTheme = () => {
     setIsDarkTheme(!isDarkTheme);
   };
 
-  const handleLogin = async (email: string, password: string, lastname: string, username: string, customerName: string ) => {
+  const initSession = () => {
+    zipy.init(apiKey);
+  };
+
+  const startSession = () => {
+    zipy.pause();
+  };
+
+  const stopSession = () => {
+    zipy.stop();
+  };
+
+  const resumeSession = () => {
+    zipy.resume();
+  };
+
+  const handleLogin = async (email: string, password: string, lastname: string, username: string, customerName: string) => {
     if (true) {
       setIsLoggedIn(true);
-      setTimeout(()=>{
-        zipy.identify(username,{
-          email:  email,
+      setTimeout(() => {
+        zipy.identify(username, {
+          email: email,
           firstName: password,
-          lastName : lastname,
+          lastName: lastname,
           customerName: customerName
-        })
-      },5000)
-    } 
-    // const deviceInfo = await NativeModules.ZipyaiReactNative.testCrash();
-
+        });
+      }, 5000);
+    }
   };
 
   const handleLogout = () => {
@@ -68,54 +100,53 @@ const App: React.FC = () => {
     zipy.anonymize();
   };
 
-
-  // Function for Button 1
-  const handleButton1 = async () => {
-    await NativeModules.ZipyaiReactNative.testCrash();
-    // Add additional logic here
-  };
-
-  // Function for Button 2
-  const handleButton2 = async () => {
-    console.log("Button 2 pressed");
-    // Add additional logic here
-    await NativeModules.ZipyaiReactNative.testANR(10);
-
-  };
-
-
   return (
-    
-    <ThemeContext.Provider value={{ toggleTheme, isDarkTheme }}>
-    
-          <View style={{ flexDirection: 'row', justifyContent: 'space-around', padding: 10 }}>
-          <Button title="Crash 1" onPress={handleButton1} />
-          <Button title="ANR 2" onPress={handleButton2} />
-        </View>
-
-      <NavigationContainer theme={isDarkTheme ? DarkTheme : DefaultTheme} onStateChange={ScreenNavigation}>
-        <Stack.Navigator screenOptions={{ headerShown: true, headerStyle: { backgroundColor: isDarkTheme ? '#1a1a2e' : '#f8f9fa' }, headerTintColor: isDarkTheme ? '#fff' : '#000' }}>
-          {isLoggedIn ? (
-            <>
-              <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen name="Profile" component={ProfileScreen} />
-              <Stack.Screen name="Settings">
-                {(props) => <SettingsScreen {...props} handleLogout={handleLogout} />}
-              </Stack.Screen>
-              <Stack.Screen name="About" component={AboutScreen} />
-              <Stack.Screen name="Api" component={ApiScreen} />
-              <Stack.Screen name="Logs" component={LogScreen} />
-              <Stack.Screen name="Errors" component={ErrorHandlingScreen} />
-            </>
-          ) : (
-            <Stack.Screen name="Login">
-              {(props) => <LoginScreen {...props} handleLogin={handleLogin} />}
-            </Stack.Screen>
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
-    </ThemeContext.Provider>
+    <ApiKeyContext.Provider value={{ apiKey, setApiKey }}>
+      <SessionContext.Provider value={{
+        isSessionInitialized,
+        initSession,
+        startSession,
+        stopSession,
+        resumeSession
+      }}>
+        <ThemeContext.Provider value={{ toggleTheme, isDarkTheme }}>
+          <View style={styles.container}>
+            <NavigationContainer theme={isDarkTheme ? DarkTheme : DefaultTheme} onStateChange={ScreenNavigation}>
+              <Stack.Navigator screenOptions={{
+                headerShown: true,
+                headerStyle: { backgroundColor: isDarkTheme ? '#1a1a2e' : '#f8f9fa' },
+                headerTintColor: isDarkTheme ? '#fff' : '#000'
+              }}>
+                {isLoggedIn ? (
+                  <>
+                    <Stack.Screen name="Home" component={WrappedHomeScreen} />
+                    <Stack.Screen name="Profile" component={WrappedProfileScreen} />
+                    <Stack.Screen name="Settings">
+                      {(props) => <WrappedSettingsScreen {...props} handleLogout={handleLogout} />}
+                    </Stack.Screen>
+                    <Stack.Screen name="About" component={WrappedAboutScreen} />
+                    <Stack.Screen name="Api" component={WrappedApiScreen} />
+                    <Stack.Screen name="Logs" component={WrappedLogScreen} />
+                    <Stack.Screen name="Errors" component={WrappedErrorHandlingScreen} />
+                  </>
+                ) : (
+                  <Stack.Screen name="Login" options={{ headerShown: false }}>
+                    {(props) => <WrappedLoginScreen {...props} handleLogin={handleLogin} />}
+                  </Stack.Screen>
+                )}
+              </Stack.Navigator>
+            </NavigationContainer>
+          </View>
+        </ThemeContext.Provider>
+      </SessionContext.Provider>
+    </ApiKeyContext.Provider>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
 
 export default App;

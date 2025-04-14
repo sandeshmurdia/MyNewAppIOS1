@@ -1,15 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Animated, StyleSheet } from 'react-native';
-import zipy from 'zipy-react-native';
-// import zipy from 'zipyai-react-native';
+import React, { useState, useRef, useEffect, useContext } from 'react';
+import { View, Text, Animated, StyleSheet, ScrollView } from 'react-native';
+import { ApiKeyContext } from '../App';
+import Input from '../components/Input';
+import Button from '../components/Button';
+import { colors, typography, spacing, shadows } from '../theme/theme';
 
-const LoginScreen: React.FC<{ handleLogin: (email: string, password: string, lastname: string, username: string ,customerName : string) => void }> = ({ handleLogin }) => {
+const LoginScreen: React.FC<{ 
+  handleLogin: (email: string, password: string, lastname: string, username: string, customerName: string) => void 
+}> = ({ handleLogin }) => {
+  const { apiKey, setApiKey } = useContext(ApiKeyContext);
+  const [showLoginForm, setShowLoginForm] = useState(false);
   const [email, setEmail] = useState('');
   const [firstname, setFirstname] = useState('');
   const [lastname, setLastname] = useState('');
   const [username, setUsername] = useState('');
   const [customername, setCustomername] = useState('');
-
 
   // Animation references
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -18,72 +23,110 @@ const LoginScreen: React.FC<{ handleLogin: (email: string, password: string, las
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 1500,
+      duration: 1000,
       useNativeDriver: true,
     }).start();
 
     Animated.spring(translateAnim, {
       toValue: 0,
-      friction: 5,
+      friction: 8,
+      tension: 40,
       useNativeDriver: true,
     }).start();
   }, [fadeAnim, translateAnim]);
 
+  const handleApiKeySubmit = () => {
+    if (apiKey.trim()) {
+      setShowLoginForm(true);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.gradientBackground, { opacity: fadeAnim }]} />
-      <Animated.View
+      <Animated.View 
         style={[
-          styles.loginContainer,
-          {
-            transform: [{ translateY: translateAnim }],
-          },
-        ]}
+          styles.gradientOverlay,
+          { opacity: fadeAnim }
+        ]} 
+      />
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.header}>Sign In</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="email"
-          placeholderTextColor="#95a5a6"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="first name"
-          placeholderTextColor="#95a5a6"
-          value={firstname}
-          onChangeText={setFirstname}
-        />
-          <TextInput
-          style={styles.input}
-          placeholder="last name"
-          placeholderTextColor="#95a5a6"
-          value={lastname}
-          onChangeText={setLastname}
-        />
-          <TextInput
-          style={styles.input}
-          placeholder="username"
-          placeholderTextColor="#95a5a6"
-          value={username}
-          onChangeText={setUsername}
-        />
-                  <TextInput
-          style={styles.input}
-          placeholder="customername"
-          placeholderTextColor="#95a5a6"
-          value={customername}
-          onChangeText={setCustomername}
-        />
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => handleLogin(email, firstname, lastname, username, customername)}
-          activeOpacity={0.8}
+        <Animated.View
+          style={[
+            styles.formContainer,
+            {
+              transform: [{ translateY: translateAnim }],
+              opacity: fadeAnim,
+            },
+          ]}
         >
-          <Text style={styles.buttonText}>Login</Text>
-        </TouchableOpacity>
-      </Animated.View>
+          {!showLoginForm ? (
+            <>
+              <Text style={styles.title}>Welcome</Text>
+              <Text style={styles.subtitle}>Enter your API key to get started</Text>
+              <Input
+                label="API Key"
+                value={apiKey}
+                onChangeText={setApiKey}
+                placeholder="Enter your API key"
+                secureTextEntry
+              />
+              <Button
+                title="Continue"
+                onPress={handleApiKeySubmit}
+                variant="primary"
+                gradient
+                fullWidth
+              />
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>Sign In</Text>
+              <Text style={styles.subtitle}>Fill in your details to continue</Text>
+              <Input
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter your email"
+                keyboardType="email-address"
+              />
+              <Input
+                label="First Name"
+                value={firstname}
+                onChangeText={setFirstname}
+                placeholder="Enter your first name"
+              />
+              <Input
+                label="Last Name"
+                value={lastname}
+                onChangeText={setLastname}
+                placeholder="Enter your last name"
+              />
+              <Input
+                label="Username"
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Choose a username"
+              />
+              <Input
+                label="Customer Name"
+                value={customername}
+                onChangeText={setCustomername}
+                placeholder="Enter customer name"
+              />
+              <Button
+                title="Sign In"
+                onPress={() => handleLogin(email, firstname, lastname, username, customername)}
+                variant="primary"
+                gradient
+                fullWidth
+              />
+            </>
+          )}
+        </Animated.View>
+      </ScrollView>
     </View>
   );
 };
@@ -91,60 +134,38 @@ const LoginScreen: React.FC<{ handleLogin: (email: string, password: string, las
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#2c3e50',
+    padding: spacing.xl,
+    paddingBottom: spacing.xxl + 60, // Extra padding for session controls
   },
-  gradientBackground: {
+  gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'linear-gradient(45deg, #3498db, #9b59b6)', // Gradient from blue to purple
+    backgroundColor: colors.primary,
+    opacity: 0.05,
   },
-  loginContainer: {
-    width: '85%',
-    padding: 20,
-    borderRadius: 15,
-    alignItems: 'center',
-    backgroundColor: '#fff', // White background for the login container
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#34495e', // Dark blue-gray color for the header
-  },
-  input: {
+  formContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: spacing.xl,
     width: '100%',
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 10,
-    marginBottom: 20,
-    paddingLeft: 15,
-    fontSize: 16,
-    borderColor: '#bdc3c7', // Light gray border for inputs
-    backgroundColor: '#ecf0f1', // Light gray background for inputs
-    color: '#34495e', // Dark blue-gray text color
+    ...shadows.lg,
   },
-  button: {
-    width: '100%',
-    paddingVertical: 15,
-    borderRadius: 10,
-    backgroundColor: '#e74c3c', // Red color for the button
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
+  title: {
+    fontSize: typography.sizes.xxxl,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  subtitle: {
+    fontSize: typography.sizes.md,
+    color: colors.text.secondary,
+    marginBottom: spacing.xl,
+    textAlign: 'center',
   },
 });
 

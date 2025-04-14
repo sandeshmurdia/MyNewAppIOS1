@@ -23,6 +23,8 @@ target 'MyNewAppIOS1' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  pod 'DoubleConversion', :podspec => '../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec'
+
   target 'MyNewAppIOS1Tests' do
     inherit! :complete
     # Pods for testing

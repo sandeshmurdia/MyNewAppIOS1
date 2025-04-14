@@ -1,159 +1,140 @@
-import React, { useContext, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated, Easing, StyleSheet, ScrollView } from 'react-native';
+import React from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ThemeContext } from '../App';
+import { colors, typography, spacing, shadows } from '../theme/theme';
+import Button from '../components/Button';
+
+interface MenuItem {
+  title: string;
+  screen: string;
+  description: string;
+}
+
+const menuItems: MenuItem[] = [
+  {
+    title: 'Profile',
+    screen: 'Profile',
+    description: 'View and edit your profile information',
+  },
+  {
+    title: 'API Testing',
+    screen: 'Api',
+    description: 'Test and monitor API endpoints',
+  },
+  {
+    title: 'Logs',
+    screen: 'Logs',
+    description: 'View system logs and debugging information',
+  },
+  {
+    title: 'Error Handling',
+    screen: 'Errors',
+    description: 'Test error handling and crash reporting',
+  },
+  {
+    title: 'Settings',
+    screen: 'Settings',
+    description: 'Configure app settings and preferences',
+  },
+  {
+    title: 'About',
+    screen: 'About',
+    description: 'Learn more about the app',
+  },
+];
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { isDarkTheme } = useContext(ThemeContext);
-  const backgroundColor = useRef(new Animated.Value(0)).current;
 
-  // Animate the background color
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(backgroundColor, {
-          toValue: 1,
-          duration: 3000,
-          easing: Easing.linear,
-          useNativeDriver: false,
-        }),
-        Animated.timing(backgroundColor, {
-          toValue: 0,
-          duration: 3000,
-          easing: Easing.linear,
-          useNativeDriver: false,
-        }),
-      ]),
-    ).start();
-  }, [backgroundColor]);
-
-  const interpolatedBackgroundColor = backgroundColor.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#fcfcfc', '#fad0c4'], // Gradient colors
-  });
+  const renderMenuItem = (item: MenuItem) => (
+    <TouchableOpacity
+      key={item.screen}
+      style={styles.menuItem}
+      onPress={() => navigation.navigate(item.screen as never)}
+    >
+      <View style={styles.menuContent}>
+        <Text style={styles.menuTitle}>{item.title}</Text>
+        <Text style={styles.menuDescription}>{item.description}</Text>
+      </View>
+      <Button
+        title="Open"
+        variant="ghost"
+        size="small"
+        onPress={() => navigation.navigate(item.screen as never)}
+      />
+    </TouchableOpacity>
+  );
 
   return (
-    <Animated.View style={[styles.container, { backgroundColor: interpolatedBackgroundColor }]}>
-      <Text style={styles.header}>Welcome to the Test App</Text>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.row}>
-          <View style={[styles.box, { backgroundColor: '#B39DDB' }]}>
-            <Text style={styles.boxHeading}>Profile</Text>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('Profile', { name: 'Jane' })}
-            >
-              <Text style={styles.buttonText}>Press Me</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[styles.box, { backgroundColor: '#9575CD' }]}>
-            <Text style={styles.boxHeading}>Settings</Text>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('Settings')}
-            >
-              <Text style={styles.buttonText}>Press Me</Text>
-            </TouchableOpacity>
-          </View>
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>Dashboard</Text>
+          <Text style={styles.subtitle}>Welcome to your testing dashboard</Text>
         </View>
 
-        <View style={styles.row}>
-          <View style={[styles.box, { backgroundColor: '#7E57C2' }]}>
-            <Text style={styles.boxHeading}>About</Text>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('About')}
-            >
-              <Text style={styles.buttonText}>Press Me</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[styles.box, { backgroundColor: '#673AB7' }]}>
-            <Text style={styles.boxHeading}>API Calls</Text>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('Api')}
-            >
-              <Text style={styles.buttonText}>Press Me</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.row}>
-          <View style={[styles.box, { backgroundColor: '#5E35B1' }]}>
-            <Text style={styles.boxHeading}>Logs</Text>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('Logs')}
-            >
-              <Text style={styles.buttonText}>Press Me</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[styles.box, { backgroundColor: '#512DA8' }]}>
-            <Text style={styles.boxHeading}>Errors</Text>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('Errors')}
-            >
-              <Text style={styles.buttonText}>Press Me</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.menuGrid}>
+          {menuItems.map(renderMenuItem)}
         </View>
       </ScrollView>
-    </Animated.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
-  scrollContainer: {
-    padding: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl + 60,
   },
   header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
-    textAlign: 'center',
+    marginBottom: spacing.xl,
   },
-  row: {
+  title: {
+    fontSize: typography.sizes.xxl,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
+  },
+  subtitle: {
+    fontSize: typography.sizes.md,
+    color: colors.text.secondary,
+  },
+  menuGrid: {
+    gap: spacing.md,
+  },
+  menuItem: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: spacing.lg,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 15,
-  },
-  box: {
-    flex: 1,
-    marginHorizontal: 5,
-    borderRadius: 10,
-    padding: 30, // Increased padding for larger containers
-    justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    justifyContent: 'space-between',
+    ...shadows.sm,
   },
-  boxHeading: {
-    fontSize: 18,
+  menuContent: {
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  menuTitle: {
+    fontSize: typography.sizes.lg,
     fontWeight: '600',
-    marginBottom: 10,
-    color: '#fff',
+    color: colors.text.primary,
+    marginBottom: spacing.xs,
   },
-  button: {
-    backgroundColor: '#FF4081', // Use a different color for the button
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    elevation: 3,
-  },
-  buttonText: {
-    fontSize: 16,
-    color: '#fff',
+  menuDescription: {
+    fontSize: typography.sizes.sm,
+    color: colors.text.secondary,
   },
 });
 
