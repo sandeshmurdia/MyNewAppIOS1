@@ -125,7 +125,6 @@ const LoginScreen: React.FC<{
                 title="Sign In"
                 onPress={() => handleLogin(email, firstname, lastname, username, customername)}
                 variant="primary"
-                gradient
                 fullWidth
               />
             </>
