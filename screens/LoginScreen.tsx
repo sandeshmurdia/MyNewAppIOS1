@@ -4,7 +4,7 @@ import { ApiKeyContext } from '../App';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { colors, typography, spacing, shadows } from '../theme/theme';
-
+import { ZipyBlock } from 'zipy-react-native';
 const LoginScreen: React.FC<{ 
   handleLogin: (email: string, password: string, lastname: string, username: string, customerName: string) => void 
 }> = ({ handleLogin }) => {
@@ -88,7 +88,10 @@ const LoginScreen: React.FC<{
             </>
           ) : (
             <>
+             <ZipyBlock>
               <Text style={styles.title}>Sign In</Text>
+              </ZipyBlock>
+ 
               <Text style={styles.subtitle}>Fill in your details to continue</Text>
               <Input
                 label="Email"
@@ -121,12 +124,16 @@ const LoginScreen: React.FC<{
                 onChangeText={setCustomername}
                 placeholder="Enter customer name"
               />
+              <ZipyBlock>
               <Button
                 title="Sign In"
                 onPress={() => handleLogin(email, firstname, lastname, username, customername)}
                 variant="primary"
                 fullWidth
               />
+              </ZipyBlock>
+              
+
             </>
           )}
         </Animated.View>

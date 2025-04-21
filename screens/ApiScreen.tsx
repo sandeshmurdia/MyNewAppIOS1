@@ -1,222 +1,396 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, Button, FlatList, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Modal,
+  Platform,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ThemeContext } from '../App';
-import axios from 'axios';  // Import Axios
+import axios from 'axios';
 import zipy from 'zipy-react-native';
-// import zipy from 'zipyai-react-native';
+import RNFS from 'react-native-fs';
 
+interface ApiResponse {
+  success: boolean;
+  data: any;
+  headers?: any;
+  requestHeaders?: any;
+  error?: string;
+}
 
 const ApiScreen: React.FC = () => {
-  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [response, setResponse] = useState<ApiResponse | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
   const { isDarkTheme } = useContext(ThemeContext);
   const navigation = useNavigation();
 
-  const fetchApi = async (url: string, fail = false) => {
-    setLoading(true);
-    setError(null);
-    setData([]);
-
-    try {
-      const response = await fetch(url);
-      if (fail || !response.ok) throw new Error('Failed to fetch data');
-      const result = await response.json();
-      console.log(result);
-      setData(result);
-    } catch (err) {
-      setError('An error occurred: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
+  // Custom auth and request headers
+  const customHeaders = {
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    'X-API-Key': 'test_api_key_12345',
+    'X-Custom-Header': 'custom_value',
+    'X-Device-Id': 'test_device_123',
+    'X-Session-Id': 'test_session_456',
+    'X-Correlation-Id': 'test_correlation_789',
   };
 
-  const postApi = async (url: string, body: any, fail = false) => {
-    setLoading(true);
-    setError(null);
-    setData([]);
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (fail || !response.ok) throw new Error('Failed to post data');
-      const result = await response.json();
-      setData([result]);
-    } catch (err) {
-      setError('An error occurred: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const axiosGet = async (url: string, fail = false) => {
-    setLoading(true);
-    setError(null);
-    setData([]);
-
-    try {
-      const response = await axios.get(url);
-      if (fail || response.status !== 200) throw new Error('Failed to fetch data');
-      setData(response.data);
-    } catch (err) {
-      setError('An error occurred: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const axiosPost = async (url: string, body: any, fail = false) => {
-    setLoading(true);
-    setError(null);
-    setData([]);
-  
-    // Generate 30KB of header data
-    const generateLargeHeader = () => {
-      const size = 30 * 1024; // 30KB
-      let largeHeader = '';
-      for (let i = 0; i < size; i++) {
-        largeHeader += 'abc'; // Adds a single character repeatedly to reach 30KB
+  const sensitivePayload = {
+    user: {
+      name: 'John Doe',
+      cardnumber: '4111-1111-1111-1111',
+      billing: {
+        address: '123 Street',
+        payment: {
+          cardnumber: '5555-5555-5555-5555',
+          details: {
+            cardnumber: '3333-3333-3333-3333',
+            deepNested: {
+              cardnumber: '2222-2222-2222-2222',
+              furtherNested: { cardnumber: '1111-1111-1111-1111' }
+            }
+          }
+        }
       }
-      return largeHeader;
-    };
-  
-    const headers = {
-      'Content-Type': 'application/json'
-
-    };
-  
-    try {
-      const response = await axios.post(url, body, { headers });
-      console.log(response.data);
-      if (fail || response.status !== 201) throw new Error('Failed to post data');
-      setData([response.data]);
-    } catch (err) {
-      setError('An error occurred: ' + err.message);
-    } finally {
-      setLoading(false);
+    },
+    metadata: {
+      api_key: 'secret_key_123',
+      credentials: {
+        password: 'test123',
+        cardnumber: '6666-6666-6666-6666'
+      }
     }
   };
-  
+
+  // Function to create a temporary test file
+  const createDemoFile = async (isCSV: boolean) => {
+    try {
+      const fileName = isCSV ? 'test.csv' : 'testfile.txt';
+      const content = isCSV 
+        ? 'id,name,cardnumber\n1,John,4111-1111-1111-1111\n2,Jane,5555-5555-5555-5555'
+        : 'This is a test file content for multipart upload demo';
+      
+      const path = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
+      await RNFS.writeFile(path, content, 'utf8');
+      return path;
+    } catch (error) {
+      console.error('Error creating demo file:', error);
+      throw error;
+    }
+  };
+
+  const handleApiCall = async (
+    method: string,
+    endpoint: string,
+    data?: any,
+    isMultipart: boolean = false
+  ) => {
+    setLoading(true);
+    setResponse(null);
+    
+    try {
+      let response;
+      const headers = {
+        ...(isMultipart 
+          ? { 'Content-Type': 'multipart/form-data' }
+          : { 'Content-Type': 'application/json' }
+        ),
+        ...customHeaders
+      };
+
+      const axiosConfig = {
+        headers,
+        validateStatus: (status: number) => true, // Allow all status codes for testing
+      };
+
+      if (method === 'GET') {
+        response = await axios.get(endpoint, axiosConfig);
+      } else if (method === 'POST') {
+        let formData;
+        if (isMultipart) {
+          const isFailCase = endpoint.includes('invalid');
+          const filePath = await createDemoFile(isFailCase);
+          const fileContent = await RNFS.readFile(filePath, 'base64');
+
+          formData = new FormData();
+          formData.append('cardnumber', '4111-1111-1111-1111');
+          formData.append('user_details', JSON.stringify({
+            name: 'John',
+            payment: {
+              cardnumber: '5555-5555-5555-5555',
+              billing: { cardnumber: '3333-3333-3333-3333' }
+            }
+          }));
+
+          // Add the file to form data
+          formData.append('document', {
+            uri: Platform.OS === 'ios' ? `file://${filePath}` : filePath,
+            type: isFailCase ? 'text/csv' : 'text/plain',
+            name: isFailCase ? 'test.csv' : 'testfile.txt',
+            data: fileContent,
+          });
+
+          // Add sensitive data as a separate file
+          formData.append('sensitive_data', {
+            string: JSON.stringify({
+              cardnumber: '2222-2222-2222-2222',
+              details: { cardnumber: '1111-1111-1111-1111' }
+            }),
+            type: 'application/json',
+            name: 'sensitive_data.json'
+          });
+        }
+
+        response = await axios.post(
+          endpoint,
+          isMultipart ? formData : data || sensitivePayload,
+          axiosConfig
+        );
+      }
+
+      if (response) {
+        setResponse({
+          success: response.status >= 200 && response.status < 300,
+          data: response.data,
+          headers: response.headers,
+          requestHeaders: response.config?.headers
+        });
+      }
+    } catch (error: any) {
+      setResponse({
+        success: false,
+        data: null,
+        error: error.message,
+        headers: error.response?.headers,
+        requestHeaders: error.config?.headers
+      });
+    } finally {
+      setLoading(false);
+      setModalVisible(true);
+    }
+  };
+
+  const renderApiSection = (title: string, buttons: Array<{ label: string; onPress: () => void; color: string }>) => (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: isDarkTheme ? '#FFF' : '#000' }]}>{title}</Text>
+      <View style={styles.buttonGrid}>
+        {buttons.map((button, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[styles.button, { backgroundColor: button.color }]}
+            onPress={button.onPress}
+          >
+            <Text style={styles.buttonText}>{button.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderResponseData = () => {
+    if (!response) return null;
+
+    return (
+      <>
+        <Text style={[styles.responseTitle, { color: isDarkTheme ? '#fff' : '#000' }]}>
+          Request Headers:
+        </Text>
+        <Text style={[styles.responseText, { color: isDarkTheme ? '#fff' : '#000' }]}>
+          {JSON.stringify(response.requestHeaders, null, 2)}
+        </Text>
+        
+        <Text style={[styles.responseTitle, { color: isDarkTheme ? '#fff' : '#000' }]}>
+          Response Headers:
+        </Text>
+        <Text style={[styles.responseText, { color: isDarkTheme ? '#fff' : '#000' }]}>
+          {JSON.stringify(response.headers, null, 2)}
+        </Text>
+        
+        <Text style={[styles.responseTitle, { color: isDarkTheme ? '#fff' : '#000' }]}>
+          Response Data:
+        </Text>
+        <Text style={[styles.responseText, { color: isDarkTheme ? '#fff' : '#000' }]}>
+          {response.success
+            ? JSON.stringify(response.data, null, 2)
+            : `Error: ${response.error}`}
+        </Text>
+      </>
+    );
+  };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkTheme ? '#000' : '#fff' }]}>
-      <Text style={[styles.header, { color: isDarkTheme ? '#FF4081' : '#3F51B5' }]}>API Calls</Text>
-      
-      {loading && <ActivityIndicator size="large" color="#007bff" />}
-      {error && <Text style={styles.errorText}>{error}</Text>}
+    <ScrollView 
+      style={[styles.container, { backgroundColor: isDarkTheme ? '#000' : '#fff' }]}
+      contentContainerStyle={styles.contentContainer}
+    >
+      <Text style={[styles.header, { color: isDarkTheme ? '#FF4081' : '#3F51B5' }]}>API Testing</Text>
 
-      {!loading && !error && (
-        <FlatList
-          data={data}
-          keyExtractor={(item) => item.id?.toString() || item.title || item.body}
-          renderItem={({ item }) => (
-            <View style={[styles.item, { backgroundColor: isDarkTheme ? '#333' : '#f0f0f0' }]}>
-              <Text style={[styles.itemTitle, { color: isDarkTheme ? '#FFC107' : '#FF4081' }]}>{item.title || 'Untitled'}</Text>
-              <Text style={[styles.itemBody, { color: isDarkTheme ? '#FFEB3B' : '#3F51B5' }]}>{item.body}</Text>
-            </View>
-          )}
-        />
-      )}
+      {renderApiSection('Regular API Calls', [
+        {
+          label: 'GET Success',
+          onPress: () => handleApiCall('GET', 'https://jsonplaceholder.typicode.com/posts/1'),
+          color: '#4CAF50'
+        },
+        {
+          label: 'GET Fail',
+          onPress: () => handleApiCall('GET', 'https://jsonplaceholder.typicode.com/invalid'),
+          color: '#FF5722'
+        },
+        {
+          label: 'POST Success',
+          onPress: () => handleApiCall('POST', 'https://jsonplaceholder.typicode.com/posts'),
+          color: '#2196F3'
+        },
+        {
+          label: 'POST Fail',
+          onPress: () => handleApiCall('POST', 'https://jsonplaceholder.typicode.com/invalid'),
+          color: '#9C27B0'
+        }
+      ])}
 
-      <View style={styles.buttonContainer}>
-        {/* Fetch buttons */}
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#4CAF50' }]} onPress={() => fetchApi('https://jsonplaceholder.typicode.com/posts')}>
-          <Text style={styles.buttonText}>Fetch GET Success</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#FF5722' }]} onPress={() => fetchApi('https://jsonplaceholder.typicode.com/invalid-endpoint', true)}>
-          <Text style={styles.buttonText}>Fetch GET Fail</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#2196F3' }]} onPress={() => postApi('https://jsonplaceholder.typicode.com/posts', { title: 'foo', body: 'bar', userId: 1 })}>
-          <Text style={styles.buttonText}>Fetch POST Success</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#9C27B0' }]} onPress={() => postApi('https://jsonplaceholder.typicode.com/invalid-endpoint', { title: 'foo', body: 'bar', userId: 1 }, true)}>
-          <Text style={styles.buttonText}>Fetch POST Fail</Text>
-        </TouchableOpacity>
+      {renderApiSection('Multipart Form Data', [
+        {
+          label: 'Multipart Success',
+          onPress: () => handleApiCall('POST', 'https://jsonplaceholder.typicode.com/posts', null, true),
+          color: '#009688'
+        },
+        {
+          label: 'Multipart Fail',
+          onPress: () => handleApiCall('POST', 'https://jsonplaceholder.typicode.com/invalid', null, true),
+          color: '#FF5252'
+        }
+      ])}
 
-        {/* Axios buttons */}
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#4CAF50' }]} onPress={() => axiosGet('https://jsonplaceholder.typicode.com/posts')}>
-          <Text style={styles.buttonText}>Axios GET Success</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#FF5722' }]} onPress={() => axiosGet('https://jsonplaceholder.typicode.com/invalid-endpoint', true)}>
-          <Text style={styles.buttonText}>Axios GET Fail</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#2196F3' }]} onPress={() => axiosPost('https://jsonplaceholder.typicode.com/posts', { title: 'foo', body: 'bar', userId: 1 })}>
-          <Text style={styles.buttonText}>Axios POST Success</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#9C27B0' }]} onPress={() => axiosPost('https://jsonplaceholder.typicode.com/invalid-endpoint', { title: 'foo', body: 'bar', userId: 1 }, true)}>
-          <Text style={styles.buttonText}>Axios POST Fail</Text>
-        </TouchableOpacity>
+      <TouchableOpacity 
+        style={[styles.button, styles.goBackButton]} 
+        onPress={() => navigation.goBack()}
+      >
+        <Text style={styles.buttonText}>Go Back</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.button, styles.goBackButton]} onPress={() => navigation.goBack()}>
-          <Text style={styles.buttonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-
-    
-    </View>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, { backgroundColor: isDarkTheme ? '#333' : '#fff' }]}>
+            <Text style={[styles.modalTitle, { color: isDarkTheme ? '#fff' : '#000' }]}>
+              API Response
+            </Text>
+            <ScrollView style={styles.responseScroll}>
+              {loading ? (
+                <ActivityIndicator size="large" color="#007AFF" />
+              ) : (
+                renderResponseData()
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: '#007AFF' }]}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.buttonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {
     padding: 20,
-    justifyContent: 'center',
   },
   header: {
     fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 30,
     textAlign: 'center',
   },
-  errorText: {
-    color: 'red',
-    fontSize: 18,
-    marginBottom: 20,
-    textAlign: 'center',
+  section: {
+    marginBottom: 30,
   },
-  item: {
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  itemTitle: {
-    fontSize: 20,
+  sectionTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 15,
   },
-  itemBody: {
-    fontSize: 16,
-  },
-  buttonContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 20,
+  buttonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   button: {
-    width: '80%',
+    width: '48%',
     paddingVertical: 15,
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: 15,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
-  },
-  goBackButton: {
-    backgroundColor: '#FF4081',
-    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  goBackButton: {
+    backgroundColor: '#FF4081',
+    width: '100%',
+    marginTop: 20,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 20,
+    padding: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  responseTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  responseScroll: {
+    maxHeight: 400,
+    marginBottom: 20,
+  },
+  responseText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    marginBottom: 15,
   },
 });
 
